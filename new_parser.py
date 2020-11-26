@@ -33,21 +33,6 @@ def get_vacancies_pagelist(vacancy_name):
 
     return main_soup, session
 
-"""
-        print("Обрабатываю...")
-        # Здесь проблема в том, что вакансии записываются в переменную только
-        # после того, как список будет пройден. Это создаёт уязвимость в
-        # направлении досрочного прекращения приложения. 
-        vacancies = parse_vacancies(main, total_vac, session)
-        print("Обработано вакансий: {}".format(len(vacancies)))
-        print("Сохранить их в JSON-формате для последующей обработки? y/[n]")
-        save_user_choice = input()
-        if save_user_choice == "y":
-            make_json(vacancies)
-        else:
-            print("Выхожу без сохранения")
-    return"""
-
 
 def make_json(vacancies_list):
     print("Сохраняю вакансии в формате JSON ...")
