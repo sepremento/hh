@@ -13,19 +13,30 @@ args = parser.parse_args()
 
 
 def get_vacancies_pagelist(vacancy_name):
+    """Подключиться к head hunter и считать основную страницу с вакансиями
+    Аргументы:
+        vacancy_name - строка, возможно с пробелами, название вакансии
+    Возвращает:
+        main_soup - объект BeautifulSoup дла последующей обработки
+    """
     print("Обрабатываю вакансию {} ...".format(vacancy_name))
-    session = HTMLSession()
+
     vacancy_name = "+".join(vacancy_name.split())
-    url = "https://ekaterinburg.hh.ru/search/vacancy?L_save_area=true&clusters=true&enable_snippets=true&search_field=name&text=" + vacancy_name + "&showClusters=true"
+    url = "https://ekaterinburg.hh.ru/search/vacancy?text=" + vacancy_name
+
+    session = HTMLSession()
     page = session.get(url)
-    main = BeautifulSoup(page.content, 'html.parser')
-    total_vac = get_vac_num(main)
-    print("По этому запросу найдено вакансий: {}".format(total_vac))
-    print("Обработать эти вакансии? y/[n]\n")
+    main_soup = BeautifulSoup(page.content, 'html.parser')
+
+    return main_soup
+
+
     parse_user_choice = input()
-    if parse_user_choice == "y":
-        
-        print("Ты выбрал обработать вакансии")
+    if parse_user_choice.lower() in ["y", "yes", "д", "да"]:
+        print("Обрабатываю...")
+        # Здесь проблема в том, что вакансии записываются в переменную только
+        # после того, как список будет пройден. Это создаёт уязвимость в
+        # направлении досрочного прекращения приложения. 
         vacancies = parse_vacancies(main, total_vac, session)
         print("Обработано вакансий: {}".format(len(vacancies)))
         print("Сохранить их в JSON-формате для последующей обработки? y/[n]")
@@ -42,16 +53,25 @@ def make_json(vacancies_list):
     with open("vacancies.json", 'w') as f:
         json.dump(vacancies_list, f, ensure_ascii=False)
 
-        
+
 def get_vac_num(soup):
-    """Найти количество вакансий и вернуть их число"""
-    
-    pattern = re.compile('\d+')
-    total_vac = soup.find('h1', attrs={'class':'bloko-header-1',
-                                       'data-qa':'bloko-header-1'})
+    """Найти количество вакансий по указанному объекту soup и вернуть их число
+    Аргументы:
+        soup - объект BeautifulSoup
+    Возвращает:
+        int - число найденных вакансий
+    """
+    total_vac = soup.select('h1.bloko-header-1')[0]
     total_vac = total_vac.get_text()
-    total_vac = re.search(pattern, total_vac)[0]
-    return int(total_vac)
+    pattern = re.compile('\d+')
+    s = re.findall(pattern, total_vac)
+    if s:
+        return int("".join(s))
+    return 0
+
+
+def vacancies_generator(main_soup):
+    while main_soup:
 
 
 def parse_vacancies(main, total_vac, session):
@@ -198,5 +218,9 @@ def get_vacancy_contents(vac_url, session):
                fio=fio, phone=phone, email=email, exp=exp, 
                description=description, timestamp=timestamp)
 
+
 if args.vacancy is not None:
-    get_vacancies_pagelist(args.vacancy)
+    main_soup = get_vacancies_pagelist(args.vacancy)
+    total_vac = get_vac_num(main_soup)
+    print("По этому запросу найдено вакансий: {}".format(total_vac))
+    print("Обработать эти вакансии? y/[n]\n")
