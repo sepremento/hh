@@ -1,8 +1,8 @@
+import os
 import sys
 import re
 import argparse
 import json
-import time
 from urllib.parse import urljoin
 
 from requests_html import HTMLSession
@@ -13,6 +13,7 @@ HH_URL = "https://ekaterinburg.hh.ru/search/vacancy"
 parser = argparse.ArgumentParser()
 
 parser.add_argument("vacancy", type=str, nargs="?", default="data scientist")
+parser.add_argument("-o", "--output", type=str, default="vacancies.json")
 args = parser.parse_args()
 
 
@@ -25,7 +26,6 @@ def get_vacancies_pagelist(vacancy_name):
         session - сессия для дальнейшей передачи
     """
     print("Обрабатываю вакансию {} ...".format(vacancy_name))
-    vacancy_name = "+".join(vacancy_name.split())
 
     session = HTMLSession()
     page = session.get(HH_URL, params={'text': vacancy_name})
@@ -34,10 +34,15 @@ def get_vacancies_pagelist(vacancy_name):
     return main_soup, session
 
 
-def make_json(vacancies_list):
-    print("Сохраняю вакансии в формате JSON ...")
-    with open("vacancies.json", 'w') as f:
-        json.dump(vacancies_list, f, ensure_ascii=False)
+def make_json(vacancy, filename):
+    """Добавляет в указанный json-файл сериализованную строку vacancy
+    Аргументы:
+        vacancy (dict) - содержимое вакансии
+        filename (str) - путь до файла, куда сохранять содержимое вакансии
+    """
+    with open(filename, 'a') as f:
+        f.write(json.dumps(vacancy, ensure_ascii=False))
+        f.write("\n")
 
 
 def get_vac_num(soup):
@@ -56,7 +61,7 @@ def get_vac_num(soup):
     return 0
 
 
-def vacancies_url_generator(main_soup, session):
+def vacancies_url_generator(main_soup, session, num=-1):
     """Генератор, позволяющий получать по одной вакансии с указанной страницы.
     Генератор находит кнопку перехода на следующую страницу и пытается пройтись
     по всем вакансиям.
@@ -71,9 +76,14 @@ def vacancies_url_generator(main_soup, session):
     if session is None:
         session = HTMLSession()
 
-    while main_soup:
+    running_total = 0
+    while main_soup and running_total < num:
         vacancies = main_soup.select('.HH-LinkModifier')
         for vacancy in vacancies:
+            running_total += 1
+            if running_total > num:
+                print("Обработали указанное число вакансий")
+                break
             yield vacancy
 
         try:
@@ -155,6 +165,8 @@ def get_vacancy_contents(vac_url, session):
     Аргументы:
         vac_url (str) - адрес вакансии
         session (HTMLSession) - открытое соединение
+    Возвращает:
+        dict - словарь содержимого вакансии
     """
     # time.sleep(3)  #  чтобы нас не остановили боты сайта, подождём какое-то время
     vac_page = session.get(vac_url)
@@ -188,16 +200,44 @@ def get_vacancy_contents(vac_url, session):
             timestamp=timestamp)
 
 
+def resolve_filename_conflicts(filename):
+    """Разрешить конфликты названий файлов. Уточнить у пользователя, следует ли
+    перезаписывать существующий файл.
+    Аргументы:
+        filename (str) - потенциально конфликтное имя файла.
+    Возвращает:
+        filename (str) - имя файла, утверждённое пользователем.
+    """
+    if os.path.exists(filename):
+        print("\nФайл {} существует, перезаписываем? y/[n]".format(filename))
+        overwrite_file = input()
+        if overwrite_file.lower() not in ["y", "yes", "д", "да"]:
+            print("\nВведите новое имя файла. Ему будет присвоен формат .json")
+            filename = input() + '.json'
+            filename = resolve_filename_conflicts(filename)
+        os.remove(filename)
+    return filename
+
+
 if args.vacancy is not None:
     main_soup, session = get_vacancies_pagelist(args.vacancy)
     total_vac = get_vac_num(main_soup)
-
     print("По этому запросу найдено вакансий: {}".format(total_vac))
-    print("Обработать эти вакансии? y/[n]\n")
+
+    print("\nСколько вакансий обрабатываем a(все)/число/c(отмена)? ")
+    num_vac_to_parse = input()
+    if num_vac_to_parse == 'c':
+        print("Отменяю ...")
+        sys.exit()
+    elif num_vac_to_parse.isnumeric():
+        num_vac_to_parse = int(num_vac_to_parse)
+    else:
+        num_vac_to_parse = total_vac
+    print("\nБудет обработано {} вакансий, продолжаем? y/[n]".format(num_vac_to_parse))
     parse_user_choice = input()
     if parse_user_choice.lower() not in ["y", "yes", "д", "да"]:
         sys.exit()
-    for vacancy in vacancies_url_generator(main_soup, session):
+    filename = resolve_filename_conflicts(args.output)
+    for vacancy in vacancies_url_generator(main_soup, session, num_vac_to_parse):
         vacancy_contents = get_vacancy_contents(vacancy['href'], session)
-        print(vacancy_contents)
-        break
+        make_json(vacancy_contents, filename)
