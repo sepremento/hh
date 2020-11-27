@@ -1,0 +1,31 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+HH_URL	new_parser.py	/^HH_URL = "https:\/\/ekaterinburg.hh.ru\/search\/vacancy"$/;"	v
+args	new_parser.py	/^args = parser.parse_args()$/;"	v
+filename	new_parser.py	/^    filename = resolve_filename_conflicts(args.output)$/;"	v
+get_company	new_parser.py	/^def get_company(soup):$/;"	f
+get_contacts	new_parser.py	/^def get_contacts(soup):$/;"	f
+get_description	new_parser.py	/^def get_description(soup):$/;"	f
+get_exp	new_parser.py	/^def get_exp(soup):$/;"	f
+get_salary	new_parser.py	/^def get_salary(soup):$/;"	f
+get_tags_list	new_parser.py	/^def get_tags_list(soup):$/;"	f
+get_timestamp	new_parser.py	/^def get_timestamp(soup):$/;"	f
+get_vac_id	new_parser.py	/^def get_vac_id(vac_url):$/;"	f
+get_vac_name	new_parser.py	/^def get_vac_name(soup):$/;"	f
+get_vac_num	new_parser.py	/^def get_vac_num(soup):$/;"	f
+get_vacancies_pagelist	new_parser.py	/^def get_vacancies_pagelist(vacancy_name):$/;"	f
+get_vacancy_contents	new_parser.py	/^def get_vacancy_contents(vac_url, session):$/;"	f
+make_json	new_parser.py	/^def make_json(vacancy, filename):$/;"	f
+num_vac_to_parse	new_parser.py	/^        num_vac_to_parse = int(num_vac_to_parse)$/;"	v
+num_vac_to_parse	new_parser.py	/^        num_vac_to_parse = total_vac$/;"	v
+num_vac_to_parse	new_parser.py	/^    num_vac_to_parse = input()$/;"	v
+parse_user_choice	new_parser.py	/^    parse_user_choice = input()$/;"	v
+parser	new_parser.py	/^parser = argparse.ArgumentParser()$/;"	v
+resolve_filename_conflicts	new_parser.py	/^def resolve_filename_conflicts(filename):$/;"	f
+total_vac	new_parser.py	/^    total_vac = get_vac_num(main_soup)$/;"	v
+vacancies_url_generator	new_parser.py	/^def vacancies_url_generator(main_soup, session, num=-1):$/;"	f
+vacancy_contents	new_parser.py	/^        vacancy_contents = get_vacancy_contents(vacancy['href'], session)$/;"	v
