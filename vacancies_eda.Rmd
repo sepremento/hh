@@ -27,13 +27,9 @@ import matplotlib.pyplot as plt
 
 import pymorphy2 as pm
 
-locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
+plt.rcParams.update({'figure.figsize': [12, 8]})
+locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8');
 ```
-
-## Предварительная подготовка
-
-
-Создадим подкласс для `defaultdict`, который будет при обращении к неизвестному ключу возвращать этот самый ключ. Это потребуется для последующей обработки зарплат.
 
 ```{python}
 class KeyDict(defaultdict):
@@ -50,7 +46,6 @@ raw[['date', 'place']] = raw['timestamp'].str.extract('(\d+ \w+ \d+) в (.+)')
 raw = raw.drop('timestamp', axis=1)
 raw['date'] = pd.to_datetime(raw['date'], format="%d %B %Y")
 raw['place'] = [morpher.parse(s)[0].normal_form.title() for s in raw['place']]
-raw.head()
 ```
 
 ## Основные тэги
@@ -65,7 +60,6 @@ plot_data = tags_counter.most_common(20)
 plot_data = [[x[0] for x in plot_data], 
              [x[1] for x in plot_data]]
 
-plt.figure(figsize=(12,8))
 plt.barh(y=plot_data[0], width=plot_data[1])
 plt.xlabel("Количество упоминаний тэга")
 plt.title("20 самых частых тэгов вакансий")
@@ -74,7 +68,7 @@ plt.show()
 ```
 
 ## Зарплата
-Зарплата может быть в разной валюте. В данный момент, этот отчёт умеет обрабатывать следующие валюты:KZT, USD, EUR, рубли, белорусские рубли. В ячейке ниже будут указаны валюты, которые не обработаны.
+Зарплата может быть в разной валюте. В данный момент, этот отчёт умеет обрабатывать следующие валюты: KZT, USD, EUR, рубли, белорусские рубли. В ячейке ниже будут указаны валюты, которые не обработаны.
 
 ```{python}
 currencies = ['бел', 'USD', 'EUR', 'KZT', 'руб']
@@ -83,7 +77,7 @@ unknown_currencies = raw.loc[~raw['salary'].str.contains(pattern),'salary']
 unknown_currencies.value_counts()
 ```
 
-Создадим объект класса `KeyDict`, который будет превращать наименования валют в нужные коды.
+Как видно, в отчёте останутся необработанными только те вакансии, где зарплата не указана.
 
 ```{python}
 cur_to_code = KeyDict()
@@ -130,7 +124,6 @@ max_salary = max(counts['salary'])
 num = int(max_salary//50000)+1
 bins = np.linspace(0, max_salary, num=num)
 
-plt.figure(figsize=(12,8))
 plt.hist(counts['salary'], bins=bins)
 plt.gca().set_xticks(bins)
 plt.xlabel("Зарплата, руб.")
@@ -139,18 +132,128 @@ plt.title("Гистограмма зарплат")
 plt.show()
 ```
 
-```{python}
+Добавим столбец обработанных зарплат в таблицу для дальнейшей обработки
 
+```{python}
+processed = raw.copy()
+processed['salary'] = counts
 ```
 
 ## Удалёнка
 
+
+Посмотрим, какая доля вакансий содержит предложение об удалённом трудоустройстве.
+
 ```{python}
-remote_df = raw.loc[raw['description'].str.contains('удален|remote'), :]
+remote_df = processed.loc[processed['description'].str.contains('удален|remote'), :]
+office_df = processed.loc[~processed['description'].str.contains('удален|remote'), :]
+remote_share = len(remote_df) / len(processed) * 100
+print("Удалённую работу предлагают в {:.2f}% вакансий".format(remote_share))
+```
+
+Есть ли разница между зарплатами на удалёнке и на полном рабочем дне?
+
+```{python}
+missed_remote = remote_df['salary'].isna().sum() / len(remote_df) * 100
+missed_office = office_df['salary'].isna().sum() / len(office_df) * 100
+print("Доля вакансий без указания зарплат среди групп:")
+print("Предложения удалённой работы: {:.2f}%".format(missed_remote))
+print("Предложения трудоустройства в офисе: {:.2f}%".format(missed_office))
 ```
 
 ```{python}
+mean_remote = remote_df['salary'].mean()
+mean_office = office_df['salary'].mean()
+median_remote = remote_df['salary'].median()
+median_office = office_df['salary'].median()
 
+plt.subplot(121)
+plt.bar(('Удалёнка', 'Офис'), height=(median_remote, median_office))
+plt.ylabel('Зарплата, руб.')
+plt.title('Медианная зарплата')
+plt.subplot(122)
+plt.bar(('Удалёнка', 'Офис'), height=(mean_remote, mean_office))
+plt.title('Средняя зарплата')
+plt.suptitle('Сравнение доходов на удалёнке и в офисе')
+plt.show()
+```
+
+## География вакансий
+
+```{python}
+cities = processed['place'].value_counts()[:15]
+
+plt.barh(cities.index, cities)
+plt.gca().invert_yaxis()
+plt.xlabel('Количество вакансий')
+plt.title('Распределение вакансий по городам')
+plt.show()
+```
+
+## Анализ ключевых слов
+
+```{python}
+import nltk
+```
+
+```{python}
+stopwords_rus = nltk.corpus.stopwords.words('russian')
+stopwords_eng = nltk.corpus.stopwords.words('english')
+
+tokens = [nltk.word_tokenize(x, language='russian') for x in processed['description']]
+tokens = [token for tokens_list in tokens for token in tokens_list]
+tokens = [token.lower() for token in tokens if token.isalpha()]
+tokens = [morpher.parse(token)[0].normal_form for token in tokens]
+tokens = [token for token in tokens if token not in stopwords_rus]
+tokens = [token for token in tokens if token not in stopwords_eng]
+```
+
+```{python}
+idx = nltk.text.ContextIndex(tokens)
+fdist = nltk.FreqDist(tokens)
+```
+
+```{python}
+keywords = [x[0].lower() for x in tags_counter.most_common(20)]
+
+similar = []
+for word in keywords:
+    similar.append(idx.similar_words(word, n=100))
+similar = [word for wlist in similar for word in wlist]
+similar = [word for word in similar if re.match('[a-z]+', word)]
+similar = list(set(similar))
+freqs = list(map(fdist.get, similar))
+```
+
+```{python}
+top_words_df = pd.DataFrame(zip(similar, freqs), columns=['word', 'count'])
+top_words_df = top_words_df.sort_values('count', ascending=False)
+top_words_df = top_words_df.reset_index(drop=True)[:40]
+```
+
+```{python}
+plt.barh(top_words_df['word'], top_words_df['count'])
+plt.gca().invert_yaxis()
+plt.title('Ключевые слова вакансий (англ.)')
+plt.xlabel('Количество упоминаний')
+plt.show()
+```
+
+## Даты размещения вакансий
+
+```{python}
+dates = processed.groupby('date')['vac_id'].count().rename('count')
+```
+
+```{python}
+plt.figure(figsize=(12,8))
+plt.plot(dates.index, dates, marker='o')
+plt.grid(ls='--')
+plt.gca().tick_params('x', labelrotation=45)
+plt.xlabel('Дата публикации')
+plt.ylabel('Количество опубликованных вакансий')
+plt.title('Распределение вакансий по дате публикации')
+plt.show()
 ```
 
 ```{python}

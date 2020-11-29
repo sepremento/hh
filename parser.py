@@ -169,7 +169,7 @@ def get_vacancy_contents(vac_url, session):
         dict - словарь содержимого вакансии
     """
     # time.sleep(3)  #  чтобы нас не остановили боты сайта, подождём какое-то время
-    vac_page = session.get(vac_url)
+    vac_page = session.get(vac_url, timeout=3)
     soup = BeautifulSoup(vac_page.content, 'html.parser')
 
     vac_id = get_vac_id(vac_url)
@@ -228,7 +228,7 @@ if args.vacancy is not None:
     num_vac_to_parse = input()
     if num_vac_to_parse == 'c':
         print("Отменяю ...")
-        sys.exit()
+        sys.exit(1)
     elif num_vac_to_parse.isnumeric():
         num_vac_to_parse = int(num_vac_to_parse)
     else:
@@ -236,8 +236,13 @@ if args.vacancy is not None:
     print("\nБудет обработано {} вакансий, продолжаем? y/[n]".format(num_vac_to_parse))
     parse_user_choice = input()
     if parse_user_choice.lower() not in ["y", "yes", "д", "да"]:
-        sys.exit()
+        sys.exit(1)
+
     filename = resolve_filename_conflicts(args.output)
     for vacancy in vacancies_url_generator(main_soup, session, num_vac_to_parse):
-        vacancy_contents = get_vacancy_contents(vacancy['href'], session)
-        make_json(vacancy_contents, filename)
+        try:
+            vacancy_contents = get_vacancy_contents(vacancy['href'], session)
+            make_json(vacancy_contents, filename)
+        except KeyboardInterrupt:
+            print("\nПарсинг досрочно прекращен пользователем.")
+            break

@@ -1,0 +1,17 @@
+#!/usr/bin/bash
+
+PID=$$
+trap ctrl_c SIGINT
+
+function ctrl_c() {
+	echo -e "\nСкрипт досрочно завершен пользователем."
+	kill -SIGTERM $PID
+}
+
+echo $1
+python parser.py "$1" &&
+	jupyter nbconvert --execute --to html --no-input vacancies_eda.ipynb &&
+	xdg-open vacancies_eda.html
+echo "Закончили скрипт."
+
+
