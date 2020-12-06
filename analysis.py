@@ -1,8 +1,11 @@
 import locale
+import json
+import os
 import re
 import requests
 import unicodedata
 from collections import Counter, defaultdict
+from datetime import datetime
 from urllib.parse import urljoin
 
 import numpy as np
@@ -92,6 +95,31 @@ def get_current_exchange_rates():
     return cur_dict
 
 
+def serialize_exchange_rates(cur_dict):
+    with open("report_files/xrates.json", "w") as f:
+        json.dump(cur_dict, f)
+
+
+def load_exchange_rates(json_file):
+    cur_dict = {}
+    with open(json_file, "r") as f:
+        cur_dict = json.load(f)
+    return cur_dict
+
+
+def parse_xrates_bool():
+    """ Если курсы валют свежие, то их можно и не обновлять """
+    filename = 'report_files/xrates.json')
+    if os.path.exists(filename):
+        file_info = os.stat(filename)
+        mtime = int(file_info.st_mtime)
+        mtime = datetime.fromtimestamp(mtime)
+        now = datetime.now
+        if (now - mtime).days < 2:
+            return False
+    return True
+
+
 def process_and_plot_salaries(vacancies_df):
     currencies = ['бел', 'USD', 'EUR', 'KZT', 'руб']
     cur_string='|'.join(currencies)
@@ -124,6 +152,11 @@ def process_and_plot_salaries(vacancies_df):
 
 
 if __name__ == "__main__":
-    df = create_raw_dataframe('vacancies.json')
-    plot_main_tags(df)
+    # df = create_raw_dataframe('vacancies.json')
+    # plot_main_tags(df)
+    if parse_xrates_bool():
+        cur_dict = get_current_exchange_rates()
+        serialize_exchange_rates(cur_dict)
+    else:
+        cur_dict = load_exchange_rates('report_files/xrates.json')
 
