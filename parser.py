@@ -45,6 +45,13 @@ def make_json(vacancy, filename):
         f.write("\n")
 
 
+def store_vacancy_name(vacancy_name):
+    with open("report_files/variables.tex", "w") as f:
+        latex_command = "\\newcommand\\VacancyName{" + vacancy_name + "}"
+        f.write(latex_command)
+
+
+
 def get_vac_num(soup):
     """Найти количество вакансий по указанному объекту soup и вернуть их число
     Аргументы:
@@ -221,6 +228,7 @@ def resolve_filename_conflicts(filename):
 
 if args.vacancy is not None:
     main_soup, session = get_vacancies_pagelist(args.vacancy)
+    store_vacancy_name(args.vacancy)
     total_vac = get_vac_num(main_soup)
     print("По этому запросу найдено вакансий: {}".format(total_vac))
 
