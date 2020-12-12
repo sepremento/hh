@@ -1,0 +1,88 @@
+\documentclass{article}
+
+% ----- ОБРАБОТКА РУССКОГО ЯЗЫКА -----
+\usepackage{polyglossia}
+\setmainlanguage{russian}
+\newfontfamily\cyrillicfont{Roboto}[Script=Cyrillic]
+
+
+% ----- ГЕОМЕТРИЯ ДОКУМЕНТА -----
+\usepackage{geometry}
+\geometry{
+	a4paper,
+	textwidth=160mm,
+	top=20mm,
+	bottom=25mm
+}
+
+
+% ----- ШРИФТЫ -----
+\usepackage{fontspec}
+\usepackage{fontawesome}
+\usepackage[default, opentype]{sourcesanspro}
+\defaultfontfeatures{Ligatures=TeX}
+
+\newfontfamily\headerfont[
+	Path=fonts/,
+	UprightFont=*-Regular,
+	ItalicFont=*-Italic,
+	BoldFont=*-Bold,
+	BoldItalicFont=*-BoldItalic
+]{Roboto}
+\newcommand*{\bodyfont}{\sourcesanspro}
+
+
+
+% ----- СТИЛИ ЗАГОЛОВКОВ И ТЕКСТА -----
+\usepackage{mfirstuc}
+\usepackage{xcolor}
+
+\definecolor{awesome}{HTML}{87A96B}
+
+\newcommand*{\headerstyle}[1]{\fontsize{16pt}{1em}\headerfont #1}
+\newcommand*{\vacancystyle}[1]{{\fontsize{24pt}{1em}\bfseries\headerfont\color{awesome} #1}}
+\newcommand*{\parstyle}[1]{\fontsize{9pt}{1em}\bodyfont #1}
+
+
+\usepackage{graphicx}
+\graphicspath{{report_files/}}
+
+
+% ----- НОВЫЕ ВСПОМОГАТЕЛЬНЫЕ КОМАНДЫ -----
+\newcommand{\contSep}{\quad\textbar\quad}
+\input{report_files/variables.tex}
+
+
+\usepackage{fancyhdr}
+\renewcommand{\headrulewidth}{0pt}
+\fancyhf{}
+\fancyfoot[C]{\footnotesize\thepage}
+
+
+
+
+\begin{document}
+\pagestyle{fancy}
+\headerstyle{Анализ рынка вакансий по запросу:}
+\vspace{5pt}
+
+\vacancystyle{\capitalisewords{\VacancyName}}
+
+\parstyle{\faGithub\quad sepremento \contSep\faTelegram\quad sepremento}
+\vspace{20pt}
+
+\includegraphics[width=\textwidth]{freq_tags.png}
+\vfill
+
+\includegraphics[width=\textwidth]{salaries.png}
+
+\newpage
+\vfill
+\includegraphics[width=\textwidth]{keywords.png}
+
+\includegraphics[width=\textwidth]{geography.png}
+\vfill
+
+\includegraphics[width=\textwidth]{dates.png}
+
+\end{document}

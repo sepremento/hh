@@ -20,15 +20,28 @@ import requests
 import unicodedata
 from collections import Counter, defaultdict
 from urllib.parse import urljoin
+from tqdm import tqdm
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+from matplotlib import font_manager as fm
+
 
 import pymorphy2 as pm
 
 plt.rcParams.update({'figure.figsize': [12, 8]})
 locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8');
+```
+
+```{python}
+font_dirs = ['./fonts/', ]
+font_files = fm.findSystemFonts(fontpaths=font_dirs)
+font_list = fm.createFontList(font_files)
+fm.fontManager.ttflist.extend(font_list)
+
+plt.rcParams['font.family'] = 'Roboto'
 ```
 
 ```{python}
@@ -60,9 +73,14 @@ plot_data = tags_counter.most_common(20)
 plot_data = [[x[0] for x in plot_data], 
              [x[1] for x in plot_data]]
 
-plt.barh(y=plot_data[0], width=plot_data[1])
-plt.xlabel("Количество упоминаний тэга")
-plt.title("20 самых частых тэгов вакансий")
+plt.barh(y=plot_data[0], width=plot_data[1], color='#87A96B')
+plt.yticks(fontsize=14)
+plt.xticks(np.arange(0, np.max(plot_data[1])), fontsize=14)
+plt.xlabel("Количество упоминаний тэга", fontsize=14)
+plt.title("20 самых частых тэгов вакансий", fontsize=18, weight='bold')
+plt.gca().spines['right'].set_color('none')
+plt.gca().spines['top'].set_color('none')
+plt.gca().spines['left'].set_color('none')
 plt.gca().invert_yaxis()
 plt.show()
 ```
@@ -121,11 +139,12 @@ counts = counts.rename(columns={1:'salary'})
 
 ```{python}
 max_salary = max(counts['salary'])
-num = int(max_salary//50000)+1
-bins = np.linspace(0, max_salary, num=num)
+bins = np.arange(0, max_salary, 10000)
 
-plt.hist(counts['salary'], bins=bins)
-plt.gca().set_xticks(bins)
+plt.clf()
+plt.hist(counts['salary'], bins=bins, color='#87A96B')
+plt.xticks(np.arange(0, max_salary, 10000), fontsize=14)
+plt.gca().yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 plt.xlabel("Зарплата, руб.")
 plt.ylabel("Количество вакансий")
 plt.title("Гистограмма зарплат")
@@ -200,12 +219,12 @@ import nltk
 stopwords_rus = nltk.corpus.stopwords.words('russian')
 stopwords_eng = nltk.corpus.stopwords.words('english')
 
-tokens = [nltk.word_tokenize(x, language='russian') for x in processed['description']]
-tokens = [token for tokens_list in tokens for token in tokens_list]
-tokens = [token.lower() for token in tokens if token.isalpha()]
-tokens = [morpher.parse(token)[0].normal_form for token in tokens]
-tokens = [token for token in tokens if token not in stopwords_rus]
-tokens = [token for token in tokens if token not in stopwords_eng]
+tokens = tqdm([nltk.word_tokenize(x, language='russian') for x in processed['description']])
+tokens = tqdm([token for tokens_list in tokens for token in tokens_list])
+tokens = tqdm([token.lower() for token in tokens if token.isalpha()])
+tokens = tqdm([morpher.parse(token)[0].normal_form for token in tokens])
+tokens = tqdm([token for token in tokens if token not in stopwords_rus])
+tokens = tqdm([token for token in tokens if token not in stopwords_eng])
 ```
 
 ```{python}
@@ -217,7 +236,7 @@ fdist = nltk.FreqDist(tokens)
 keywords = [x[0].lower() for x in tags_counter.most_common(20)]
 
 similar = []
-for word in keywords:
+for word in tqdm(keywords):
     similar.append(idx.similar_words(word, n=100))
 similar = [word for wlist in similar for word in wlist]
 similar = [word for word in similar if re.match('[a-z]+', word)]
@@ -250,6 +269,8 @@ plt.figure(figsize=(12,8))
 plt.plot(dates.index, dates, marker='o')
 plt.grid(ls='--')
 plt.gca().tick_params('x', labelrotation=45)
+plt.gca().spines['top'].set_color('none')
+plt.gca().spines['right'].set_color('none')
 plt.xlabel('Дата публикации')
 plt.ylabel('Количество опубликованных вакансий')
 plt.title('Распределение вакансий по дате публикации')

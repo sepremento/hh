@@ -1,3 +1,4 @@
+import time
 import os
 import sys
 import re
@@ -254,3 +255,6 @@ if args.vacancy is not None:
         except KeyboardInterrupt:
             print("\nПарсинг досрочно прекращен пользователем.")
             break
+        except AttributeError:
+            print("\nОшибка чтения вакансии, либо доступ запрещён.")
+            continue
