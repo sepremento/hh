@@ -9,9 +9,8 @@ function ctrl_c() {
 }
 
 echo $1
-python parser.py "$1" &&
-	jupyter nbconvert --execute --to html --no-input vacancies_eda.ipynb &&
-	xdg-open vacancies_eda.html
+python parser.py "$1" && python analysis.py &&
+	xelatex -output-dir=$HOME/Documents/data_science/hh_project/tmp report.tex
 echo "Закончили скрипт."
 
 

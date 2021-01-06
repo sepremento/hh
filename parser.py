@@ -47,10 +47,29 @@ def make_json(vacancy, filename):
 
 
 def store_vacancy_name(vacancy_name):
+    """ Сохранить наименование вакансии, которую обрабатываем в файл.
+    Аргументы:
+        vacancy_name (str) - наименование вакансии
+    """
     with open("report_files/variables.tex", "w") as f:
-        latex_command = "\\newcommand\\VacancyName{" + vacancy_name + "}"
+        latex_command = "\\newcommand\\VacancyName{" + vacancy_name + "}\n"
         f.write(latex_command)
 
+
+def store_vacancy_counts(num_vac_to_parse, total_vac):
+    """ Сохранить в специально подготовленный файл LaTeX информацию о количестве
+    вакансий на сайте и количестве вакансий, которые надо распарсить с помощью
+    скрипта.
+    Аргументы:
+        num_vac_to_parse (int) - число вакансий, которые предоставляет сайт по
+        данному запросу.
+        total_vac (int) - число вакансий, которые нужно обработать.
+    """
+    with open("report_files/variables.tex", "a") as f:
+        latex_command = "\\newcommand\\TotalVac{" + str(total_vac) + "}\n"
+        f.write(latex_command)
+        latex_command = "\\newcommand\\ParsedVac{" + str(num_vac_to_parse) + "}\n"
+        f.write(latex_command)
 
 
 def get_vac_num(soup):
@@ -247,6 +266,7 @@ if args.vacancy is not None:
     if parse_user_choice.lower() not in ["y", "yes", "д", "да"]:
         sys.exit(1)
 
+    store_vacancy_counts(num_vac_to_parse, total_vac)
     filename = resolve_filename_conflicts(args.output)
     for vacancy in vacancies_url_generator(main_soup, session, num_vac_to_parse):
         try:

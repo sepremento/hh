@@ -40,7 +40,7 @@ class KeyDict(defaultdict):
 
 
 def create_raw_dataframe(json_file):
-    """ Загрузить файл с информацией по вакансием и провести его предварительную
+    """ Загрузить файл с информацией по вакансиям и провести его предварительную
     обработку.
     Аргументы:
         json_file (str) - название .json файла, в котором содержится скачанная
@@ -108,13 +108,43 @@ def plot_main_tags(vacancies_df, num=20):
 
 
 def get_salary_bins(max_salary):
+    """ Получить количество разбиений в гистограмме зарплат для удобного чтения
+    графика.
+    Аргументы:
+        max_salary (numeric) - максимальная зарплата в выборке
+    Возвращает:
+        шаг разбиения гистограммы.
+    """
     if max_salary < 50001:
         return 10000
     else:
         return int(round(max_salary / 10, -4))
 
 
+def make_salary_statistics(salary_df):
+    """ Сохранить основную статистику по зарплатам в специально подготовленный
+    файл LaTeX.
+    Аргументы:
+        salary_df (pandas.DataFrame) - датафрейм с информацией о зарплатах, из
+        которого нужно будет извлечь среднюю и медиану.
+    """
+    mean_salary = round(salary_df['salary'].mean(), 2)
+    median_salary = round(salary_df['salary'].median(), 2)
+    with open("report_files/variables.tex", "a") as f:
+        latex_command = "\\newcommand\\MeanSalary{" + str(mean_salary) + "}\n"
+        f.write(latex_command)
+        latex_command = "\\newcommand\\MedianSalary{" + str(median_salary) + "}\n"
+        f.write(latex_command)
+
+
 def process_and_plot_salaries(vacancies_df, cur_dict):
+    """ Обработка столбца заработных плат, приведение их к одной валюте,
+    отрисовка гистограммы зарплат.
+    Аргументы:
+        vacancies_df (pandas.DataFrame) - датафрейм вакансий
+        cur_dict (dict) - словарь курсов валют, полученный либо из файла, либо
+        из Интернета.
+    """
     print("\nСоздаю гистограмму зарплат...", end="")
     cur_to_code = KeyDict()
     cur_to_code.update({'бел': 'BYN', 'руб': 'RUB'})
@@ -136,6 +166,8 @@ def process_and_plot_salaries(vacancies_df, cur_dict):
     counts[1] = counts[1]*counts[4]
     counts = counts.drop([0,2,3,4], axis=1)
     counts = counts.rename(columns={1:'salary'})
+
+    make_salary_statistics(counts)
 
     max_salary = max(counts['salary'])
     bin_step = get_salary_bins(max_salary)
@@ -182,7 +214,7 @@ def plot_keywords(vacancies_df, num=40):
     for word in keywords:
         similar.append(idx.similar_words(word, n=100))
     similar = [word for wlist in similar for word in wlist]
-    similar = [word for word in similar if re.match('[a-z]+', word)]
+    similar = [word for word in similar if re.match('[a-zа-я]+', word)]
     similar = list(set(similar))
     freqs = list(map(fdist.get, similar))
 

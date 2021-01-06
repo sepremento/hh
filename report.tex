@@ -32,7 +32,6 @@
 \newcommand*{\bodyfont}{\sourcesanspro}
 
 
-
 % ----- СТИЛИ ЗАГОЛОВКОВ И ТЕКСТА -----
 \usepackage{mfirstuc}
 \usepackage{xcolor}
@@ -44,6 +43,7 @@
 \newcommand*{\parstyle}[1]{\fontsize{9pt}{1em}\bodyfont #1}
 
 
+% ----- ИЗОБРАЖЕНИЯ -----
 \usepackage{graphicx}
 \graphicspath{{report_files/}}
 
@@ -53,10 +53,16 @@
 \input{report_files/variables.tex}
 
 
+% ----- КОЛОНТИТУЛЫ -----
 \usepackage{fancyhdr}
 \renewcommand{\headrulewidth}{0pt}
 \fancyhf{}
 \fancyfoot[C]{\footnotesize\thepage}
+
+
+% ----- ГИПЕРССЫЛКИ -----
+\usepackage[hidelinks]{hyperref}
+\hypersetup{colorlinks=false}
 
 
 
@@ -68,15 +74,28 @@
 
 \vacancystyle{\capitalisewords{\VacancyName}}
 
-\parstyle{\faGithub\quad sepremento \contSep\faTelegram\quad sepremento}
-\vspace{20pt}
-
-\includegraphics[width=\textwidth]{freq_tags.png}
+\parstyle{\faGithub\quad \href{https://github.com/sepremento/}{sepremento}
+\contSep\faTelegram\quad \href{https://t.me/sepremento}{sepremento}}
 \vfill
 
-\includegraphics[width=\textwidth]{salaries.png}
+Всего вакансий по этому запросу: \enskip\TotalVac \contSep Обработано вакансий
+по этому запросу:\enskip \ParsedVac
+\vspace{20pt}
+
+\includegraphics[width=\textwidth, height=0.4\textheight]{freq_tags.png}
+
+\noindent Средняя зарплата по этой вакансии: \enskip\MeanSalary\enskip руб. \\
+Медианная зарплата по этой вакансии: \enskip\MedianSalary\enskip руб.
+\vfill
+
+\includegraphics[width=\textwidth, height=0.4\textheight]{salaries.png}
 
 \newpage
+Список ключевых слов - результат лингвистического анализа. Сначала
+рассматриваются слова из тэгов вакансий, для каждого из них подбирается по сто
+максимально похожих слов. Формируется общий список и из этого списка выбирается
+сорок наиболее релевантных слов на английском языке, что даёт понимание о стэке
+технологий данной вакансии. 
 \vfill
 \includegraphics[width=\textwidth]{keywords.png}
 

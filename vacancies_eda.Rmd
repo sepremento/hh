@@ -69,6 +69,30 @@ tags_counter = Counter(tags)
 ```
 
 ```{python}
+def plot_decorator(title, ylabel):
+    def decorator(plot_func):
+        def wrapper():
+            plot_func()
+            plt.title(title)
+            plt.gca().spines['right'].set_color('none')
+            plt.gca().spines['top'].set_color('none')
+            plt.gca().spines['left'].set_color('none')
+            plt.xlabel("А здесь будет: "+ ylabel)
+        return wrapper
+    return decorator
+```
+
+```{python}
+@plot_decorator(title="Проверочка", ylabel="Шмроверочка")
+def plot_tags():
+    plt.barh(y=plot_data[0], width=plot_data[1])
+```
+
+```{python}
+plot_tags()
+```
+
+```{python}
 plot_data = tags_counter.most_common(20)
 plot_data = [[x[0] for x in plot_data], 
              [x[1] for x in plot_data]]
@@ -151,6 +175,10 @@ plt.title("Гистограмма зарплат")
 plt.show()
 ```
 
+```{python}
+round(counts['salary'].mean(), 2)
+```
+
 Добавим столбец обработанных зарплат в таблицу для дальнейшей обработки
 
 ```{python}
@@ -219,12 +247,12 @@ import nltk
 stopwords_rus = nltk.corpus.stopwords.words('russian')
 stopwords_eng = nltk.corpus.stopwords.words('english')
 
-tokens = tqdm([nltk.word_tokenize(x, language='russian') for x in processed['description']])
-tokens = tqdm([token for tokens_list in tokens for token in tokens_list])
-tokens = tqdm([token.lower() for token in tokens if token.isalpha()])
-tokens = tqdm([morpher.parse(token)[0].normal_form for token in tokens])
-tokens = tqdm([token for token in tokens if token not in stopwords_rus])
-tokens = tqdm([token for token in tokens if token not in stopwords_eng])
+tokens = [nltk.word_tokenize(x, language='russian') for x in processed['description']]
+tokens = [token for tokens_list in tokens for token in tokens_list]
+tokens = [token.lower() for token in tokens if token.isalpha()]
+tokens = [morpher.parse(token)[0].normal_form for token in tokens]
+tokens = [token for token in tokens if token not in stopwords_rus]
+tokens = [token for token in tokens if token not in stopwords_eng]
 ```
 
 ```{python}
@@ -234,14 +262,20 @@ fdist = nltk.FreqDist(tokens)
 
 ```{python}
 keywords = [x[0].lower() for x in tags_counter.most_common(20)]
+keywords = [w for ws in keywords for w in ws.split()]
+
 
 similar = []
 for word in tqdm(keywords):
     similar.append(idx.similar_words(word, n=100))
 similar = [word for wlist in similar for word in wlist]
-similar = [word for word in similar if re.match('[a-z]+', word)]
+similar = [word for word in similar if re.match('[a-zа-я]+', word)]
 similar = list(set(similar))
 freqs = list(map(fdist.get, similar))
+```
+
+```{python}
+keywords
 ```
 
 ```{python}
