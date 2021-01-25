@@ -28,6 +28,13 @@ fm.fontManager.ttflist.extend(font_list)
 
 plt.rcParams['font.family'] = 'Roboto'
 plt.rcParams['figure.figsize'] = [12, 8]
+plt.rcParams.update({
+    'axes.titlesize': 18,
+    'axes.labelsize': 14,
+    'xtick.labelsize': 14,
+    'ytick.labelsize': 14
+    })
+
 locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8');
 
 
@@ -129,6 +136,8 @@ def beautify_plot(title, xlabel, ylabel):
     return decorator
 
 
+@beautify_plot(title="20 самых частых тэгов вакансий",
+        xlabel="Количество упоминаний тэга", ylabel="")
 def plot_main_tags(vacancies_df, num=20):
     """ Отрисовать нужное количество самых популярных тэгов в вакансиях.
     Аргументы:
@@ -146,17 +155,9 @@ def plot_main_tags(vacancies_df, num=20):
     plot_data = [[x[0] for x in plot_data], [x[1] for x in plot_data]]
     xstep = get_xtick_step(np.max(plot_data[1]))
 
-    plt.clf()
     plt.barh(y=plot_data[0], width=plot_data[1], color='#87A96B')
-    plt.yticks(fontsize=14)
     plt.xticks(np.arange(0, np.max(plot_data[1]), xstep), fontsize=14)
-    plt.xlabel("Количество упоминаний тэга", fontsize=14)
-    plt.title("20 самых частых тэгов вакансий", fontsize=18, weight='bold')
-    plt.gca().spines['right'].set_color('none')
-    plt.gca().spines['top'].set_color('none')
-    plt.gca().spines['left'].set_color('none')
     plt.gca().invert_yaxis()
-    plt.tight_layout()
     plt.savefig("report_files/freq_tags.png")
     print("Готово")
 
