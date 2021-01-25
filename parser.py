@@ -18,6 +18,126 @@ parser.add_argument("-o", "--output", type=str, default="vacancies.json")
 args = parser.parse_args()
 
 
+def get_company(soup):
+    """Извлечь название компании"""
+    company_name = soup.find('span', {'class':'bloko-section-header-2 bloko-section-header-2_lite'})
+    return company_name.get_text()
+
+
+def get_contacts(soup):
+    """Извлечь контакты рекрутера"""
+    try:
+        fio = soup.find('p', {'data-qa':'vacancy-contacts__fio'}).get_text()
+    except: fio = ''
+    try:
+        phone = soup.find('p', {'data-qa':'vacancy-contacts__phone'}).get_text()
+    except: phone = ''
+    try:
+        email = soup.find('a', {'data-qa':'vacancy-contacts__email'}).get_text()
+    except: email = ''
+    contacts_dict = dict(fio=fio, phone=phone, email=email)
+    return contacts_dict
+
+
+def get_description(soup):
+    """Извлечь текстовое описание вакансии"""
+    non_branded = soup.find('div', {'data-qa':'vacancy-description'})
+    branded = soup.find('div', {'class':'vacancy-section HH-VacancyBrandedDescription-DANGEROUS-HTML'})
+    description = non_branded or branded
+    return description.get_text()
+
+
+def get_exp(soup):
+    """Извлечь требуемый опыт работы"""
+    experience = soup.find('span', {'data-qa':'vacancy-experience'})
+    return experience.get_text()
+
+
+def get_salary(soup):
+    """Извлечь зарплату со страницы"""
+    return soup.select('.vacancy-salary')[0].get_text()
+
+
+def get_tags_list(soup):
+    """Извлечь из страницы с вакансией список ключевых навыков, указанных в вакансии"""
+    spans = soup.select('.bloko-tag__section_text')
+    tags = [span.get_text() for span in spans]
+    return tags
+
+
+def get_timestamp(soup):
+    """Извлечь дату создания вакансии"""
+    vac_timestamp = soup.find('p', class_="vacancy-creation-time")
+    return vac_timestamp.get_text()
+
+
+def get_vac_id(vac_url):
+    """Извлечь ID вакансии"""
+    pattern= re.compile('\d+')
+    return re.search(pattern, vac_url)[0]
+
+
+def get_vac_name(soup):
+    """Извлечь название вакансии"""
+    return soup.select('h1.bloko-header-1')[0].get_text()
+
+
+def get_vac_num(soup):
+    """Найти количество вакансий по указанному объекту soup и вернуть их число
+    Аргументы:
+        soup - объект BeautifulSoup
+    Возвращает:
+        int - число найденных вакансий
+    """
+    total_vac = soup.select('h1.bloko-header-1')[0]
+    total_vac = total_vac.get_text()
+    pattern = re.compile('\d+')
+    s = re.findall(pattern, total_vac)
+    if s:
+        return int("".join(s))
+    return 0
+
+
+def get_vacancy_contents(vac_url, session):
+    """Возвращает словарь из элементов описания вакансии
+    Аргументы:
+        vac_url (str) - адрес вакансии
+        session (HTMLSession) - открытое соединение
+    Возвращает:
+        dict - словарь содержимого вакансии
+    """
+    # time.sleep(3)  #  чтобы нас не остановили боты сайта, подождём какое-то время
+    vac_page = session.get(vac_url, timeout=3)
+    soup = BeautifulSoup(vac_page.content, 'html.parser')
+
+    vac_id = get_vac_id(vac_url)
+    vac_name = get_vac_name(soup)
+    company = get_company(soup)
+    tags = get_tags_list(soup)
+    salary = get_salary(soup)
+    contacts = get_contacts(soup)
+    fio = contacts['fio']
+    phone = contacts['phone']
+    email = contacts['email']
+    exp = get_exp(soup)
+    description = get_description(soup)
+    timestamp = get_timestamp(soup)
+    print("Обработана вакансия: {}".format(vac_name))
+
+    return dict(
+            vac_id=vac_id,
+            vac_name=vac_name,
+            company=company,
+            tags=tags,
+            salary=salary,
+            fio=fio,
+            phone=phone,
+            email=email,
+            exp=exp,
+            description=description,
+            timestamp=timestamp)
+
+
 def get_vacancies_pagelist(vacancy_name):
     """Подключиться к head hunter и считать основную страницу с вакансиями
     Аргументы:
@@ -72,22 +192,6 @@ def store_vacancy_counts(num_vac_to_parse, total_vac):
         f.write(latex_command)
 
 
-def get_vac_num(soup):
-    """Найти количество вакансий по указанному объекту soup и вернуть их число
-    Аргументы:
-        soup - объект BeautifulSoup
-    Возвращает:
-        int - число найденных вакансий
-    """
-    total_vac = soup.select('h1.bloko-header-1')[0]
-    total_vac = total_vac.get_text()
-    pattern = re.compile('\d+')
-    s = re.findall(pattern, total_vac)
-    if s:
-        return int("".join(s))
-    return 0
-
-
 def vacancies_url_generator(main_soup, session, num=-1):
     """Генератор, позволяющий получать по одной вакансии с указанной страницы.
     Генератор находит кнопку перехода на следующую страницу и пытается пройтись
@@ -121,110 +225,6 @@ def vacancies_url_generator(main_soup, session, num=-1):
         except:
             print("Закончили...")
             break
-
-
-def get_tags_list(soup):
-    """Извлечь из страницы с вакансией список ключевых навыков, указанных в вакансии"""
-    spans = soup.select('.bloko-tag__section_text')
-    tags = [span.get_text() for span in spans]
-    return tags
-
-
-def get_salary(soup):
-    """Извлечь зарплату со страницы"""
-    return soup.select('.vacancy-salary')[0].get_text()
-
-
-def get_vac_name(soup):
-    """Извлечь название вакансии"""
-    return soup.select('h1.bloko-header-1')[0].get_text()
-
-
-def get_vac_id(vac_url):
-    """Извлечь ID вакансии"""
-    pattern= re.compile('\d+')
-    return re.search(pattern, vac_url)[0]
-
-
-def get_exp(soup):
-    """Извлечь требуемый опыт работы"""
-    experience = soup.find('span', {'data-qa':'vacancy-experience'})
-    return experience.get_text()
-
-
-def get_contacts(soup):
-    """Извлечь контакты рекрутера"""
-    try:
-        fio = soup.find('p', {'data-qa':'vacancy-contacts__fio'}).get_text()
-    except: fio = ''
-    try:
-        phone = soup.find('p', {'data-qa':'vacancy-contacts__phone'}).get_text()
-    except: phone = ''
-    try:
-        email = soup.find('a', {'data-qa':'vacancy-contacts__email'}).get_text()
-    except: email = ''
-    contacts_dict = dict(fio=fio, phone=phone, email=email)
-    return contacts_dict
-
-
-def get_company(soup):
-    """Извлечь название компании"""
-    company_name = soup.find('span', {'class':'bloko-section-header-2 bloko-section-header-2_lite'})
-    return company_name.get_text()
-
-
-def get_description(soup):
-    """Извлечь текстовое описание вакансии"""
-    non_branded = soup.find('div', {'data-qa':'vacancy-description'})
-    branded = soup.find('div', {'class':'vacancy-section HH-VacancyBrandedDescription-DANGEROUS-HTML'})
-    description = non_branded or branded
-    return description.get_text()
-
-
-def get_timestamp(soup):
-    """Извлечь дату создания вакансии"""
-    vac_timestamp = soup.find('p', class_="vacancy-creation-time")
-    return vac_timestamp.get_text()
-
-
-def get_vacancy_contents(vac_url, session):
-    """Возвращает словарь из элементов описания вакансии
-    Аргументы:
-        vac_url (str) - адрес вакансии
-        session (HTMLSession) - открытое соединение
-    Возвращает:
-        dict - словарь содержимого вакансии
-    """
-    # time.sleep(3)  #  чтобы нас не остановили боты сайта, подождём какое-то время
-    vac_page = session.get(vac_url, timeout=3)
-    soup = BeautifulSoup(vac_page.content, 'html.parser')
-
-    vac_id = get_vac_id(vac_url)
-    vac_name = get_vac_name(soup)
-    company = get_company(soup)
-    tags = get_tags_list(soup)
-    salary = get_salary(soup)
-    contacts = get_contacts(soup)
-    fio = contacts['fio']
-    phone = contacts['phone']
-    email = contacts['email']
-    exp = get_exp(soup)
-    description = get_description(soup)
-    timestamp = get_timestamp(soup)
-    print("Обработана вакансия: {}".format(vac_name))
-
-    return dict(
-            vac_id=vac_id,
-            vac_name=vac_name,
-            company=company,
-            tags=tags,
-            salary=salary,
-            fio=fio,
-            phone=phone,
-            email=email,
-            exp=exp,
-            description=description,
-            timestamp=timestamp)
 
 
 def resolve_filename_conflicts(filename):
