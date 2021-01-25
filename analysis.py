@@ -122,9 +122,9 @@ def get_xtick_step(max_xcount):
 
 def beautify_plot(title, xlabel, ylabel):
     def decorator(plot_func):
-        def wrapper():
+        def wrapper(*args, **kwargs):
             plt.clf()
-            plot_func()
+            plot_func(*args, **kwargs)
             plt.title(title)
             plt.gca().spines['right'].set_color('none')
             plt.gca().spines['top'].set_color('none')

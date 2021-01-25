@@ -35,6 +35,8 @@ plt.rcParams.update({'figure.figsize': [12, 8]})
 locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8');
 ```
 
+### Обработка шрифтов
+
 ```{python}
 font_dirs = ['./fonts/', ]
 font_files = fm.findSystemFonts(fontpaths=font_dirs)
@@ -46,9 +48,14 @@ plt.rcParams['font.family'] = 'Roboto'
 
 ```{python}
 class KeyDict(defaultdict):
+    """ Подкласс словаря, который по запросу к несуществующему ключу возвращает
+    название ключа
+    """
     def __missing__(self, key):
         return key
 ```
+
+### Предварительная подготовка датафрейма
 
 ```{python}
 morpher = pm.MorphAnalyzer()
@@ -83,16 +90,6 @@ def plot_decorator(title, ylabel):
 ```
 
 ```{python}
-@plot_decorator(title="Проверочка", ylabel="Шмроверочка")
-def plot_tags():
-    plt.barh(y=plot_data[0], width=plot_data[1])
-```
-
-```{python}
-plot_tags()
-```
-
-```{python}
 plot_data = tags_counter.most_common(20)
 plot_data = [[x[0] for x in plot_data], 
              [x[1] for x in plot_data]]
@@ -109,8 +106,24 @@ plt.gca().invert_yaxis()
 plt.show()
 ```
 
+```{python}
+@plot_decorator(title="Проверочка", ylabel="Шмроверочка")
+def plot_tags():
+    plt.barh(y=plot_data[0], width=plot_data[1])
+```
+
+```{python}
+plot_tags()
+```
+
 ## Зарплата
-Зарплата может быть в разной валюте. В данный момент, этот отчёт умеет обрабатывать следующие валюты: KZT, USD, EUR, рубли, белорусские рубли. В ячейке ниже будут указаны валюты, которые не обработаны.
+
+* Зарплата может быть в разной валюте. В данный момент, этот отчёт умеет обрабатывать следующие валюты: KZT, USD, EUR, рубли, белорусские рубли. В ячейке ниже будут указаны валюты, которые не обработаны.
+* Зарплата может выдаваться на руки и "до вычета налогов". Это важно.
+
+```{python}
+raw['salary'].str.contains('на руки').sum()
+```
 
 ```{python}
 currencies = ['бел', 'USD', 'EUR', 'KZT', 'руб']
