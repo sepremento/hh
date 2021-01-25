@@ -63,6 +63,44 @@ def create_raw_dataframe(json_file):
     return raw
 
 
+def get_current_exchange_rates():
+    """ Забраться на сайт 'free.currconv.com' и получить сегодняшние курсы
+    валют.
+    Возвращает:
+        currency_dict (dict) - словарь курсов валют по отношению к рублю.
+    """
+    API_KEY = 'f57760a8c9133fde8b40'
+    CUR_CODES = ['BYN', 'USD', 'EUR', 'KZT']
+    URL = 'https://free.currconv.com/api/v7/convert'
+
+    queries = ['_'.join((x, 'RUB')) for x in CUR_CODES]
+    params = {'compact': 'ultra',
+              'apiKey': API_KEY}
+
+    currency_dict = {'RUB': 1}
+    for query in queries:
+        params.update({'q': query})
+        resp = requests.get(URL, params=params)
+        currency_dict.update(resp.json())
+    currency_dict = {k[:3]: v for k,v in currency_dict.items()}
+
+    return currency_dict
+
+
+def get_salary_bins(max_salary):
+    """ Получить количество разбиений в гистограмме зарплат для удобного чтения
+    графика.
+    Аргументы:
+        max_salary (numeric) - максимальная зарплата в выборке
+    Возвращает:
+        шаг разбиения гистограммы.
+    """
+    if max_salary < 50001:
+        return 10000
+    else:
+        return int(round(max_salary / 10, -4))
+
+
 def get_xtick_step(max_xcount):
     """ Получить шаг подписей графика тэгов
     Аргументы:
@@ -73,6 +111,22 @@ def get_xtick_step(max_xcount):
         return 1
     else:
         return int(max_xcount / 10)
+
+
+def beautify_plot(title, xlabel, ylabel):
+    def decorator(plot_func):
+        def wrapper():
+            plt.clf()
+            plot_func()
+            plt.title(title)
+            plt.gca().spines['right'].set_color('none')
+            plt.gca().spines['top'].set_color('none')
+            plt.gca().spines['left'].set_color('none')
+            plt.xlabel(xlabel)
+            plt.ylabel(ylabel)
+            plt.tight_layout()
+        return wrapper
+    return decorator
 
 
 def plot_main_tags(vacancies_df, num=20):
@@ -107,18 +161,11 @@ def plot_main_tags(vacancies_df, num=20):
     print("Готово")
 
 
-def get_salary_bins(max_salary):
-    """ Получить количество разбиений в гистограмме зарплат для удобного чтения
-    графика.
-    Аргументы:
-        max_salary (numeric) - максимальная зарплата в выборке
-    Возвращает:
-        шаг разбиения гистограммы.
-    """
-    if max_salary < 50001:
-        return 10000
-    else:
-        return int(round(max_salary / 10, -4))
+def load_exchange_rates(json_file):
+    cur_dict = {}
+    with open(json_file, "r") as f:
+        cur_dict = json.load(f)
+    return cur_dict
 
 
 def make_salary_statistics(salary_df):
@@ -279,40 +326,9 @@ def plot_vacancy_publish_dates(vacancies_df):
     print("Готово")
 
 
-def get_current_exchange_rates():
-    """ Забраться на сайт 'free.currconv.com' и получить сегодняшние курсы
-    валют.
-    Возвращает:
-        curr_dict (dict) - словарь курсов валют по отношению к рублю.
-    """
-    API_KEY = 'f57760a8c9133fde8b40'
-    CUR_CODES = ['BYN', 'USD', 'EUR', 'KZT']
-    URL = 'https://free.currconv.com/api/v7/convert'
-
-    queries = ['_'.join((x, 'RUB')) for x in CUR_CODES]
-    params = {'compact': 'ultra',
-              'apiKey': API_KEY}
-
-    cur_dict = {'RUB': 1}
-    for query in queries:
-        params.update({'q': query})
-        resp = requests.get(URL, params=params)
-        cur_dict.update(resp.json())
-    cur_dict = {k[:3]: v for k,v in cur_dict.items()}
-
-    return cur_dict
-
-
 def serialize_exchange_rates(cur_dict):
     with open("report_files/xrates.json", "w") as f:
         json.dump(cur_dict, f)
-
-
-def load_exchange_rates(json_file):
-    cur_dict = {}
-    with open(json_file, "r") as f:
-        cur_dict = json.load(f)
-    return cur_dict
 
 
 def parse_xrates_bool():
@@ -340,7 +356,7 @@ if __name__ == "__main__":
     try:
         plot_main_tags(df)
         process_and_plot_salaries(df, cur_dict)
-        plot_keywords(df)
+        # plot_keywords(df)
         plot_geography(df)
         plot_vacancy_publish_dates(df)
     except KeyboardInterrupt:
