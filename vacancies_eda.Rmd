@@ -122,7 +122,15 @@ plot_tags()
 * Зарплата может выдаваться на руки и "до вычета налогов". Это важно.
 
 ```{python}
-raw['salary'].str.contains('на руки').sum()
+raw['salary'].str.contains('до вычета').sum()
+```
+
+```{python}
+raw['salary'].count()
+```
+
+```{python}
+
 ```
 
 ```{python}
@@ -172,6 +180,24 @@ counts[1] = counts[1].combine_first(counts[2])
 counts[1] = counts[1]*counts[4]
 counts = counts.drop([0,2,3,4], axis=1)
 counts = counts.rename(columns={1:'salary'})
+```
+
+```{python}
+pattern = '(от|до)((\d+)до(\d+)|\d+)({})\.(\w+)'.format(cur_string)
+
+counts = raw['salary'].copy()
+counts = counts.str.replace(' ', '')
+counts = counts.str.extract(pattern).dropna(how='all')
+counts[1] = [x if x.isdigit() else None for x in counts[1]]
+counts[4] = counts[4].map(cur_to_code)
+counts[4] = counts[4].map(cur_dict)
+counts.iloc[:, 1:4] = counts.iloc[:,1:4].apply(pd.to_numeric)
+counts[2] = (counts[2] + counts[3]) / 2
+counts[1] = np.where(counts[0] == 'до', counts[1]/2, counts[1])
+counts[1] = counts[1].combine_first(counts[2])
+counts[1] = counts[1]*counts[4]
+counts[1] = np.where(counts[5] == 'наруки', counts[1], 0.87*counts[1])
+counts.head(20)
 ```
 
 ```{python}
@@ -274,6 +300,14 @@ fdist = nltk.FreqDist(tokens)
 ```
 
 ```{python}
+concord = nltk.text.ConcordanceIndex(tokens)
+```
+
+```{python}
+concord.find_concordance('навыки')
+```
+
+```{python}
 keywords = [x[0].lower() for x in tags_counter.most_common(20)]
 keywords = [w for ws in keywords for w in ws.split()]
 
@@ -303,6 +337,24 @@ plt.gca().invert_yaxis()
 plt.title('Ключевые слова вакансий (англ.)')
 plt.xlabel('Количество упоминаний')
 plt.show()
+```
+
+## TF-IDF
+
+```{python}
+from sklearn.feature_extraction.text import TfidfVectorizer
+```
+
+```{python}
+stopwords_full = stopwords_eng.extend(stopwords_rus)
+```
+
+```{python}
+vectorizer = TfidfVectorizer()
+```
+
+```{python}
+type(stopwords_full)
 ```
 
 ## Даты размещения вакансий

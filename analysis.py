@@ -26,11 +26,15 @@ font_files = fm.findSystemFonts(fontpaths=font_dirs)
 font_list = fm.createFontList(font_files)
 fm.fontManager.ttflist.extend(font_list)
 
-plt.rcParams['font.family'] = 'Roboto'
-plt.rcParams['figure.figsize'] = [12, 8]
 plt.rcParams.update({
-    'axes.titlesize': 18,
     'axes.labelsize': 14,
+    'axes.titlesize': 18,
+    'axes.titleweight': 'bold',
+    'axes.spines.left': False,
+    'axes.spines.right': False,
+    'axes.spines.top': False,
+    'font.family': 'Roboto',
+    'figure.figsize': [12, 8],
     'xtick.labelsize': 14,
     'ytick.labelsize': 14
     })
@@ -120,24 +124,24 @@ def get_xtick_step(max_xcount):
         return int(max_xcount / 10)
 
 
-def beautify_plot(title, xlabel, ylabel):
+def beautify_plot(title, xlabel, ylabel, filename):
     def decorator(plot_func):
         def wrapper(*args, **kwargs):
+            print('\nСоздаю график "' + title + '" ...', end="")
             plt.clf()
             plot_func(*args, **kwargs)
             plt.title(title)
-            plt.gca().spines['right'].set_color('none')
-            plt.gca().spines['top'].set_color('none')
-            plt.gca().spines['left'].set_color('none')
             plt.xlabel(xlabel)
             plt.ylabel(ylabel)
             plt.tight_layout()
+            plt.savefig("report_files/" + filename)
+            print("Готово")
         return wrapper
     return decorator
 
 
 @beautify_plot(title="20 самых частых тэгов вакансий",
-        xlabel="Количество упоминаний тэга", ylabel="")
+        xlabel="Количество упоминаний тэга", ylabel="", filename="freq_tags.png")
 def plot_main_tags(vacancies_df, num=20):
     """ Отрисовать нужное количество самых популярных тэгов в вакансиях.
     Аргументы:
@@ -147,7 +151,6 @@ def plot_main_tags(vacancies_df, num=20):
         num (int) - количество тэгов, для которых нужно будет построить график.
         По умолчанию 20.
     """
-    print("\nСоздаю график ключевых тэгов вакансии...", end="")
     tags = [tag for tag_list in vacancies_df['tags'] for tag in tag_list]
     tags_counter = Counter(tags)
 
@@ -158,8 +161,6 @@ def plot_main_tags(vacancies_df, num=20):
     plt.barh(y=plot_data[0], width=plot_data[1], color='#87A96B')
     plt.xticks(np.arange(0, np.max(plot_data[1]), xstep), fontsize=14)
     plt.gca().invert_yaxis()
-    plt.savefig("report_files/freq_tags.png")
-    print("Готово")
 
 
 def load_exchange_rates(json_file):
@@ -185,6 +186,8 @@ def make_salary_statistics(salary_df):
         f.write(latex_command)
 
 
+@beautify_plot(title="Гистограмма зарплат", xlabel="Зарплата, руб.",
+            ylabel="Количество вакансий", filename="salaries.png")
 def process_and_plot_salaries(vacancies_df, cur_dict):
     """ Обработка столбца заработных плат, приведение их к одной валюте,
     отрисовка гистограммы зарплат.
@@ -193,13 +196,12 @@ def process_and_plot_salaries(vacancies_df, cur_dict):
         cur_dict (dict) - словарь курсов валют, полученный либо из файла, либо
         из Интернета.
     """
-    print("\nСоздаю гистограмму зарплат...", end="")
     cur_to_code = KeyDict()
     cur_to_code.update({'бел': 'BYN', 'руб': 'RUB'})
 
     currencies = ['бел', 'USD', 'EUR', 'KZT', 'руб']
     cur_string='|'.join(currencies)
-    pattern = '(от|до)((\d+)до(\d+)|\d+)({})'.format(cur_string)
+    pattern = '(от|до)((\d+)до(\d+)|\d+)({})\.(\w+)'.format(cur_string)
 
     counts = df['salary'].copy()
     counts = counts.str.replace(' ', '')
@@ -212,7 +214,8 @@ def process_and_plot_salaries(vacancies_df, cur_dict):
     counts[1] = np.where(counts[0] == 'до', counts[1]/2, counts[1])
     counts[1] = counts[1].combine_first(counts[2])
     counts[1] = counts[1]*counts[4]
-    counts = counts.drop([0,2,3,4], axis=1)
+    counts[1] = np.where(counts[5] == 'наруки', counts[1], 0.87*counts[1])
+    counts = counts.drop([0, 2, 3, 4, 5], axis=1)
     counts = counts.rename(columns={1:'salary'})
 
     make_salary_statistics(counts)
@@ -221,24 +224,15 @@ def process_and_plot_salaries(vacancies_df, cur_dict):
     bin_step = get_salary_bins(max_salary)
     bins = np.arange(0, max_salary, bin_step)-(bin_step/2)*0.8
 
-    plt.clf()
     plt.hist(counts['salary'], bins=bins, color='#87A96B', width=bin_step*0.8)
-    plt.xticks(np.arange(0, max_salary, bin_step), fontsize=14)
-    plt.yticks(fontsize=14)
+    plt.xticks(np.arange(0, max_salary, bin_step))
     plt.xlim([-10000, np.max(bins)])
     plt.gca().yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-    plt.gca().spines['right'].set_color('none')
-    plt.gca().spines['top'].set_color('none')
-    plt.xlabel("Зарплата, руб.", fontsize=14)
-    plt.ylabel("Количество вакансий", fontsize=14)
-    plt.title("Гистограмма зарплат", fontsize=18, fontweight='bold')
-    plt.tight_layout()
-    plt.savefig('report_files/salaries.png')
-    print("Готово")
 
 
+@beautify_plot(title = 'Ключевые слова вакансий', xlabel='Количество упоминаний',
+        ylabel='', filename='keywords.png')
 def plot_keywords(vacancies_df, num=40):
-    print("\nСоздаю график ключевых слов вакансий...")
     morpher = pm.MorphAnalyzer()
 
     stopwords_rus = nltk.corpus.stopwords.words('russian')
@@ -270,61 +264,28 @@ def plot_keywords(vacancies_df, num=40):
     top_words_df = top_words_df.sort_values('count', ascending=False)
     top_words_df = top_words_df.reset_index(drop=True)[:40]
 
-    plt.clf()
     plt.figure(figsize=(12, 16))
     plt.barh(top_words_df['word'], top_words_df['count'], color='#87A96B')
-    plt.yticks(fontsize=14)
-    plt.xticks(fontsize=14)
     plt.gca().invert_yaxis()
-    plt.gca().spines['right'].set_color('none')
-    plt.gca().spines['top'].set_color('none')
-    plt.gca().spines['left'].set_color('none')
-    plt.title('Ключевые слова вакансий (англ.)', fontsize=18, fontweight='bold')
-    plt.xlabel('Количество упоминаний', fontsize=14)
-    plt.tight_layout()
-    plt.savefig('report_files/keywords.png')
-    print("Готово")
 
 
+@beautify_plot(title='Распределение вакансий по городам', xlabel='Количество вакансий',
+        ylabel='', filename='geography.png')
 def plot_geography(vacancies_df):
-    print("\nСоздаю график городов...", end="")
     cities = vacancies_df['place'].value_counts()[:15]
 
-    plt.clf()
-    plt.figure(figsize=(12,8))
     plt.barh(cities.index, cities, color='#87A96B')
     plt.gca().invert_yaxis()
-    plt.gca().spines['top'].set_color('none')
-    plt.gca().spines['right'].set_color('none')
-    plt.gca().spines['left'].set_color('none')
-    plt.xlabel('Количество вакансий', fontsize=14)
-    plt.yticks(fontsize=14)
-    plt.xticks(fontsize=14)
-    plt.title('Распределение вакансий по городам', fontsize=18, fontweight='bold')
-    plt.tight_layout()
-    plt.savefig('report_files/geography.png')
-    print("Готово")
 
 
+@beautify_plot(title='Распределение вакансий по дате публикации', xlabel='Дата публикации',
+        ylabel='Количество опубликованных вакансий', filename='dates.png')
 def plot_vacancy_publish_dates(vacancies_df):
-    print("\nСоздаю распределение по датам...", end="")
     dates = vacancies_df.groupby('date')['vac_id'].count().rename('count')
 
-    plt.clf()
-    plt.figure(figsize=(12,8))
     plt.plot(dates.index, dates, marker='o', color='#87A96B')
     plt.grid(ls='--')
     plt.gca().tick_params('x', labelrotation=45)
-    plt.gca().spines['top'].set_color('none')
-    plt.gca().spines['right'].set_color('none')
-    plt.yticks(fontsize=14)
-    plt.xticks(fontsize=14)
-    plt.xlabel('Дата публикации', fontsize=14)
-    plt.ylabel('Количество опубликованных вакансий', fontsize=14)
-    plt.title('Распределение вакансий по дате публикации', fontsize=18, fontweight='bold')
-    plt.tight_layout()
-    plt.savefig('report_files/dates.png')
-    print("Готово")
 
 
 def serialize_exchange_rates(cur_dict):
@@ -357,7 +318,7 @@ if __name__ == "__main__":
     try:
         plot_main_tags(df)
         process_and_plot_salaries(df, cur_dict)
-        # plot_keywords(df)
+        plot_keywords(df)
         plot_geography(df)
         plot_vacancy_publish_dates(df)
     except KeyboardInterrupt:
