@@ -8,9 +8,22 @@ function ctrl_c() {
 	kill -SIGTERM $PID
 }
 
-echo $1
-python parser.py "$1" && python analysis.py &&
-	xelatex -output-dir=$HOME/Documents/data_science/hh_project/tmp report.tex
-echo "Закончили скрипт."
+if [ $# -eq 0 ]
+then
+    echo "Ожидается наименование вакансии ... "
+fi
 
+if [ $# -eq 1 ]
+then
+    python parser.py "$1" && python analysis.py &&  xelatex -output-dir=$PWD/tmp report.tex
+fi
+
+if [ $# -eq 2 ]
+then
+    if [ $2 = "tech" ]
+    then
+        python parser.py "$1" && python analysis.py tech && xelatex -output-dir=$PWD/tmp report.tex
+    fi
+fi
+echo "Закончили скрипт."
 

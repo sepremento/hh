@@ -2,6 +2,7 @@ import locale
 import json
 import os
 import re
+import sys
 import requests
 import unicodedata
 from collections import Counter, defaultdict
@@ -232,7 +233,7 @@ def process_and_plot_salaries(vacancies_df, cur_dict):
 
 @beautify_plot(title = 'Ключевые слова вакансий', xlabel='Количество упоминаний',
         ylabel='', filename='keywords.png')
-def plot_keywords(vacancies_df, num=40):
+def plot_keywords(vacancies_df, num=40, tech=True):
     morpher = pm.MorphAnalyzer()
 
     stopwords_rus = nltk.corpus.stopwords.words('russian')
@@ -256,7 +257,10 @@ def plot_keywords(vacancies_df, num=40):
     for word in keywords:
         similar.append(idx.similar_words(word, n=100))
     similar = [word for wlist in similar for word in wlist]
-    similar = [word for word in similar if re.match('[a-zа-я]+', word)]
+    if tech:
+        similar = [word for word in similar if re.match('[a-z]+', word)]
+    else:
+        similar = [word for word in similar if re.match('[a-zа-я]+', word)]
     similar = list(set(similar))
     freqs = list(map(fdist.get, similar))
 
@@ -281,6 +285,8 @@ def plot_geography(vacancies_df):
 @beautify_plot(title='Распределение вакансий по дате публикации', xlabel='Дата публикации',
         ylabel='Количество опубликованных вакансий', filename='dates.png')
 def plot_vacancy_publish_dates(vacancies_df):
+    """ Построить даты публикаций вакансий
+    """
     dates = vacancies_df.groupby('date')['vac_id'].count().rename('count')
 
     plt.plot(dates.index, dates, marker='o', color='#87A96B')
@@ -318,7 +324,12 @@ if __name__ == "__main__":
     try:
         plot_main_tags(df)
         process_and_plot_salaries(df, cur_dict)
-        plot_keywords(df)
+        if len(sys.argv) > 1 and sys.argv[1] == "tech":
+            print("TECH TRUE")
+            plot_keywords(df)
+        else:
+            print("TECH FALSE")
+            plot_keywords(df, tech=False)
         plot_geography(df)
         plot_vacancy_publish_dates(df)
     except KeyboardInterrupt:
